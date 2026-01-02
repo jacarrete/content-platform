@@ -1,0 +1,2 @@
+### AI-powered search
+GET http://localhost:8080/articles/search/ai?query=spring

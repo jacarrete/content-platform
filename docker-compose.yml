@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: content-platform-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: content_platform
+      POSTGRES_USER: cp_user
+      POSTGRES_PASSWORD: cp_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cp_user -d content_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - SYS_NICE
+      - IPC_LOCK
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    command: ["serve"]
+    environment:
+      OLLAMA_LLM_LIBRARY: "cpu"
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_LOAD_TIMEOUT: 10m
+      OLLAMA_KEEP_ALIVE: 10m
+      OLLAMA_FLASH_ATTENTION: "false"
+      OLLAMA_DEBUG: "INFO"
+
+  content-platform-app:
+    image: content-platform
+    container_name: content-platform-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
+  ollama_data:

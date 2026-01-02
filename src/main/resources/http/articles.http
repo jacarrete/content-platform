@@ -1,0 +1,11 @@
+### Create article
+POST http://localhost:8080/articles
+Content-Type: application/json
+
+{
+  "title": "Spring Boot 4",
+  "content": "Pagination works"
+}
+
+### List paginated
+GET http://localhost:8080/articles?page=0&size=5&sort=title,asc

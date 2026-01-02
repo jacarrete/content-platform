@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,beans"
+  endpoint:
+    health:
+      show-details: always
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/content_platform
+    username: cp_user
+    password: cp_pass
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  ai:
+    ollama:
+      base-url: http://ollama:11434
+      chat:
+        options:
+          model: moondream

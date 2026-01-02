@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    alias(libs.plugins.spring.boot)
+    alias(libs.plugins.spring.dependency.management)
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+description = 'content-platform'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot starters
+    implementation(libs.spring.boot.web)
+    implementation(libs.spring.boot.validation)
+    implementation(libs.spring.boot.actuator)
+    implementation(libs.spring.boot.jpa)
+
+    // PostgreSQL
+    runtimeOnly(libs.postgresql)
+
+    // Spring AI (Ollama)
+    implementation(libs.spring.ai.ollama)
+
+    // OpenAPI / Swagger
+    implementation(libs.springdoc.openapi)
+
+    // Tests
+    testImplementation(libs.spring.boot.test)
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
