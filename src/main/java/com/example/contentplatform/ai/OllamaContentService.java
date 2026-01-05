@@ -3,31 +3,41 @@ package com.example.contentplatform.ai;
 import com.example.contentplatform.api.article.ArticleResponse;
 import com.example.contentplatform.repository.article.ArticleMapper;
 import com.example.contentplatform.repository.article.ArticleRepository;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Stream;
 
+@Slf4j
 @Service
 public final class OllamaContentService implements AiContentService {
 
     private final ChatClient chatClient;
     private final ArticleRepository repository;
+    private final ObservationRegistry registry;
 
     public OllamaContentService(
             ChatClient.Builder chatClientBuilder,
-            ArticleRepository repository
+            ArticleRepository repository,
+            ObservationRegistry registry
     ) {
         this.chatClient = chatClientBuilder.build();
         this.repository = repository;
+        this.registry = registry;
     }
 
     @Override
     public List<ArticleResponse> search(String query) {
-        return aiSearch(query);
+        return Observation.createNotStarted("ai.ollama.call", registry)
+                .observe(() -> aiSearch(query));
     }
 
     private List<ArticleResponse> aiSearch(String query) {
+        log.info("Searching articles via AI");
         var articles = repository.findAll();
         if (articles.isEmpty()) {
             return List.of();
@@ -46,8 +56,7 @@ public final class OllamaContentService implements AiContentService {
             """.formatted(
                 query,
                 articles.stream()
-                        .map(a -> "%d|%s|%s"
-                                .formatted(a.getId(), a.getTitle(), a.getContent()))
+                        .map(a -> "%d|%s|%s".formatted(a.getId(), a.getTitle(), a.getContent()))
                         .toList()
         );
 
@@ -65,17 +74,16 @@ public final class OllamaContentService implements AiContentService {
                     .toList();
 
         } catch (Exception e) {
+            log.warn("AI search failed, falling back to keyword search", e);
             return KeywordSearch.search(repository, query);
         }
     }
 
     private List<Long> parseIds(String result) {
-
         if (result == null || result.isBlank()) {
             return List.of();
         }
-
-        return List.of(result.replaceAll("[^0-9,]", "").split(",")).stream()
+        return Stream.of(result.replaceAll("[^0-9,]", "").split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .map(Long::parseLong)

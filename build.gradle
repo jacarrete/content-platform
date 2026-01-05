@@ -25,6 +25,9 @@ dependencies {
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.boot.jpa)
 
+    // Micrometer tracing
+    implementation(libs.micrometer.tracing.bridge.otel)
+
     // PostgreSQL
     runtimeOnly(libs.postgresql)
 
@@ -34,8 +37,14 @@ dependencies {
     // OpenAPI / Swagger
     implementation(libs.springdoc.openapi)
 
+    // Lombok
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
+
     // Tests
     testImplementation(libs.spring.boot.test)
+    testCompileOnly(libs.lombok)
+    testAnnotationProcessor(libs.lombok)
 }
 
 tasks.named('test') {

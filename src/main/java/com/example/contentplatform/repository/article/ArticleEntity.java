@@ -26,6 +26,11 @@ public class ArticleEntity {
     }
 
     public ArticleEntity(String title, String content) {
+        if (title == null || title.isBlank())
+            throw new IllegalArgumentException("Title is required");
+        if (content == null || content.isBlank())
+            throw new IllegalArgumentException("Content is required");
+
         this.title = title;
         this.content = content;
     }

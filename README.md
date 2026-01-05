@@ -2,7 +2,7 @@
 
 A Spring Boot application to manage articles and search them using an AI assistant (Ollama).
 
-This project demonstrates how to integrate AI capabilities safely into a traditional backend using feature flags, clean architecture principles, and modern Java features.
+This project demonstrates how to integrate AI capabilities safely into a traditional backend using feature flags, clean architecture principles, modern Java features, and observability best practices.
 
 ---
 
@@ -14,26 +14,24 @@ This project demonstrates how to integrate AI capabilities safely into a traditi
 - Runtime feature flags to enable/disable AI without restarting.
 - Safe fallback to keyword-based search when AI is disabled or unavailable.
 - PostgreSQL persistence.
+- Observability: metrics, tracing, and structured logging.
 - Docker Compose setup for local development.
 
 ---
 
 ## Architecture Overview
 
-The AI functionality is designed with safety and extensibility in mind.
+The AI functionality is designed with **safety, observability, and extensibility** in mind.
 
 - **AiContentRouter**  
-  Central orchestration point.  
-  Decides at runtime whether AI search is enabled.  
-  Routes requests to the appropriate implementation.
+  Central orchestration point. Decides at runtime whether AI search is enabled and routes requests accordingly.
 
 - **AiContentService (sealed interface)**  
-  Defines the AI search contract.  
-  Explicitly restricts which implementations are allowed.
+  Defines the AI search contract. Only allows explicit implementations.
 
 - **AI Providers**
-    - OllamaContentService: Semantic search using an LLM.
-    - NoOpAiContentService: Keyword-based search fallback.
+  - **OllamaContentService:** Semantic search using an LLM.
+  - **NoOpAiContentService:** Keyword-based search fallback.
 
 This ensures:
 - Clear separation of responsibilities.
@@ -58,6 +56,21 @@ Check status:
 - bash: curl http://localhost:8080/features/ai-search
 
 When disabled, the system automatically falls back to keyword-based search.
+
+---
+
+## Observability
+
+The system is fully observable using Micrometer and OpenTelemetry.
+
+### Metrics:
+AI search calls, query counts, article CRUD.
+
+### Tracing:
+Each AI search call is traced with a traceId and spanId.
+
+### Logging:
+Structured console logging with trace identifiers.
 
 ---
 
@@ -139,6 +152,7 @@ Verify:
 - Spring AI (Ollama)
 - PostgreSQL
 - Docker & Docker Compose
+- Micrometer & OpenTelemetry for observability
 
 ---
 
