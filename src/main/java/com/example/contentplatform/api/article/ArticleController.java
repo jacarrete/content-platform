@@ -4,11 +4,10 @@ import com.example.contentplatform.service.article.ArticleService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/articles")
@@ -21,12 +20,22 @@ public class ArticleController {
     }
 
     @GetMapping
-    public Page<ArticleResponse> getAll(Pageable pageable) {
-        return service.getAll(pageable);
+    public ResponseEntity<Page<ArticleResponse>> getAll(Pageable pageable) {
+        Page<ArticleResponse> page = service.getAll(pageable);
+        return ResponseEntity.ok(page);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ArticleResponse> getById(@PathVariable Long id) {
+        return service.getById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ArticleResponse create(@Valid @RequestBody ArticleRequest request) {
-        return service.create(request.title(), request.content());
+    public ResponseEntity<ArticleResponse> create(@Valid @RequestBody ArticleRequest request) {
+        ArticleResponse response = service.create(request.title(), request.content());
+        URI location = URI.create("/articles/" + response.id());
+        return ResponseEntity.created(location).body(response);
     }
 }

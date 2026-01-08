@@ -43,10 +43,11 @@ dependencies {
 
     // Tests
     testImplementation(libs.spring.boot.test)
-    testCompileOnly(libs.lombok)
-    testAnnotationProcessor(libs.lombok)
+    testImplementation(libs.h2)
+    testImplementation(libs.testcontainers.junit)
+    testImplementation(libs.testcontainers.postgres)
 }
 
-tasks.named('test') {
+tasks.test {
     useJUnitPlatform()
 }

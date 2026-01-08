@@ -8,6 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class ArticleService {
 
@@ -15,6 +17,11 @@ public class ArticleService {
 
     public ArticleService(ArticleRepository repository) {
         this.repository = repository;
+    }
+
+    public Optional<ArticleResponse> getById(Long id) {
+        return repository.findById(id)
+                .map(article -> new ArticleResponse(article.getId(), article.getTitle(), article.getContent()));
     }
 
     public Page<ArticleResponse> getAll(Pageable pageable) {
