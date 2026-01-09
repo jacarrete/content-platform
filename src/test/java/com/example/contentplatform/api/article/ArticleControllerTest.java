@@ -11,9 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = ArticleController.class)
 class ArticleControllerTest {
@@ -26,11 +24,13 @@ class ArticleControllerTest {
 
     @Test
     void shouldCreateArticle() throws Exception {
+        // Given
         ArticleResponse response = new ArticleResponse(1L, "Title", "Body");
 
         given(articleService.create(anyString(), anyString()))
                 .willReturn(response);
 
+        // When / Then
         mockMvc.perform(post("/articles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -48,10 +48,13 @@ class ArticleControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenInvalid() throws Exception {
+        // Given / When / Then
         mockMvc.perform(post("/articles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists());
+                .andExpect(jsonPath("$.validationErrors").exists())
+                .andExpect(jsonPath("$.validationErrors.title").exists())
+                .andExpect(jsonPath("$.validationErrors.content").exists());
     }
 }

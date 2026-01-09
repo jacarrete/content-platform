@@ -4,6 +4,7 @@ import com.example.contentplatform.service.article.ArticleService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class ArticleController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ArticleResponse>> getAll(Pageable pageable) {
+    public ResponseEntity<Page<ArticleResponse>> getAll(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
         Page<ArticleResponse> page = service.getAll(pageable);
         return ResponseEntity.ok(page);
     }

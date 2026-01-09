@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "articles")
@@ -16,9 +17,11 @@ public class ArticleEntity {
     private Long id;
 
     @Column(nullable = false)
+    @NotBlank
     private String title;
 
     @Column(nullable = false, length = 10_000)
+    @NotBlank
     private String content;
 
     protected ArticleEntity() {
@@ -26,11 +29,6 @@ public class ArticleEntity {
     }
 
     public ArticleEntity(String title, String content) {
-        if (title == null || title.isBlank())
-            throw new IllegalArgumentException("Title is required");
-        if (content == null || content.isBlank())
-            throw new IllegalArgumentException("Content is required");
-
         this.title = title;
         this.content = content;
     }
