@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/articles/search/ai")
 public class ArticleAiController {
@@ -19,7 +17,7 @@ public class ArticleAiController {
     }
 
     @GetMapping
-    public List<ArticleResponse> search(@RequestParam String query) {
+    public ArticleResponseList search(@RequestParam String query) {
         return router.search(query);
     }
 }

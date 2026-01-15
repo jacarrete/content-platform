@@ -4,10 +4,10 @@ import com.example.contentplatform.events.ArticleEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import static com.example.contentplatform.kafka.config.KafkaTopicConfig.ARTICLE_TOPIC;
+
 @Component
 public class ArticleEventProducer {
-
-    private static final String TOPIC = "content.article.events";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -17,7 +17,7 @@ public class ArticleEventProducer {
 
     public void publish(ArticleEvent event) {
         kafkaTemplate.send(
-                TOPIC,
+                ARTICLE_TOPIC,
                 event.getArticleId(), // key
                 event
         );

@@ -24,6 +24,9 @@ dependencies {
     implementation(libs.spring.boot.validation)
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.boot.jpa)
+    implementation(libs.spring.boot.cache)
+    // Redis
+    implementation(libs.spring.boot.redis)
 
     // Micrometer tracing
     implementation(libs.micrometer.tracing.bridge.otel)

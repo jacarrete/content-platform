@@ -16,6 +16,10 @@ spring-boot-validation = { module = "org.springframework.boot:spring-boot-starte
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
+
+# --- Redis ---
+spring-boot-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 
 # --- Infra ---
 micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel", version.ref = "micrometer-tracing" }

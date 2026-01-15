@@ -16,6 +16,7 @@ This project demonstrates how to integrate AI capabilities safely into a traditi
 * PostgreSQL persistence.
 * Observability: metrics, tracing, and structured logging.
 * Docker Compose setup for local development.
+* Redis caching for AI search results with TTL (5 minutes)
 
 ---
 
@@ -25,6 +26,7 @@ The AI functionality is designed with **safety, observability, and extensibility
 
 * **AiContentRouter**
   Central orchestration point. Decides at runtime whether AI search is enabled and routes requests accordingly.
+  Caches results in Redis for 5 minutes (TTL) to reduce repeated AI calls.
 
 * **AiContentService (sealed interface)**
   Defines the AI search contract. Only allows explicit implementations.
@@ -224,6 +226,8 @@ docker exec -it ollama ollama list
 * Kafka UI (for cluster monitoring)
 * Docker & Docker Compose
 * Micrometer & OpenTelemetry for observability
+* Redis (caching for AI search)
+
 
 ---
 
