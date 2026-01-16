@@ -21,22 +21,46 @@ public class ArticleController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ArticleResponse>> getAll(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
+    public ResponseEntity<Page<ArticleResponse>> getAll(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable
+    ) {
         Page<ArticleResponse> page = service.getAll(pageable);
         return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ArticleResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<ArticleResponse> getById(
+            @PathVariable Long id
+    ) {
         return service.getById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<ArticleResponse> create(@Valid @RequestBody ArticleRequest request) {
-        ArticleResponse response = service.create(request.title(), request.content());
+    public ResponseEntity<ArticleResponse> create(
+            @Valid @RequestBody ArticleRequest request
+    ) {
+        ArticleResponse response = service.create(request);
         URI location = URI.create("/articles/" + response.id());
         return ResponseEntity.created(location).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ArticleResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ArticleRequest request
+    ) {
+        return service.update(id, request)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        boolean deleted = service.delete(id);
+        return deleted
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

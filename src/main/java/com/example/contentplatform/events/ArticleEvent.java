@@ -1,6 +1,9 @@
 package com.example.contentplatform.events;
 
-public interface ArticleEvent {
-    String getEventType();
-    String getArticleId();
-}
+import java.time.Instant;
+
+public record ArticleEvent(
+        String articleId,
+        ArticleEventType type,
+        Instant occurredAt
+) {}

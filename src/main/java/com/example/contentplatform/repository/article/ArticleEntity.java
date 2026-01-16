@@ -7,8 +7,9 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
 
-@Entity
+@Getter @Entity
 @Table(name = "articles")
 public class ArticleEntity {
 
@@ -33,15 +34,9 @@ public class ArticleEntity {
         this.content = content;
     }
 
-    public Long getId() {
-        return id;
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getContent() {
-        return content;
-    }
 }

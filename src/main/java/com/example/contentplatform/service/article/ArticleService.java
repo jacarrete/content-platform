@@ -1,7 +1,9 @@
 package com.example.contentplatform.service.article;
 
+import com.example.contentplatform.api.article.ArticleRequest;
 import com.example.contentplatform.api.article.ArticleResponse;
-import com.example.contentplatform.events.ArticleCreatedEvent;
+import com.example.contentplatform.events.ArticleEvent;
+import com.example.contentplatform.events.ArticleEventType;
 import com.example.contentplatform.kafka.producer.ArticleEventProducer;
 import com.example.contentplatform.repository.article.ArticleEntity;
 import com.example.contentplatform.repository.article.ArticleMapper;
@@ -38,16 +40,47 @@ public class ArticleService {
     }
 
     @Transactional
-    public ArticleResponse create(String title, String content) {
-        final var article = ArticleMapper.toResponse(repository.save(new ArticleEntity(title, content)));
-        articleEventProducer.publish(
-                new ArticleCreatedEvent(
-                        String.valueOf(article.id()),
-                        article.title(),
-                        article.content(),
-                        Instant.now()
-                )
+    public ArticleResponse create(ArticleRequest articleRequest) {
+        final var articleSaved = repository.save(
+                new ArticleEntity(articleRequest.title(), articleRequest.content())
         );
-        return article;
+
+        articleEventProducer.publish(new ArticleEvent(
+                String.valueOf(articleSaved.getId()),
+                ArticleEventType.CREATED,
+                Instant.now()
+        ));
+
+        return ArticleMapper.toResponse(articleSaved);
+    }
+
+    @Transactional
+    public Optional<ArticleResponse> update(Long id, ArticleRequest request) {
+        return repository.findById(id)
+                .map(article -> {
+                    article.update(request.title(), request.content());
+                    final var articleUpdated = repository.save(article);
+                    articleEventProducer.publish(new ArticleEvent(
+                            String.valueOf(articleUpdated.getId()),
+                            ArticleEventType.UPDATED,
+                            Instant.now()
+                    ));
+                    return ArticleMapper.toResponse(articleUpdated);
+                });
+    }
+
+    @Transactional
+    public boolean delete(Long id) {
+        return repository.findById(id)
+                .map(article -> {
+                    repository.delete(article);
+                    articleEventProducer.publish(new ArticleEvent(
+                            String.valueOf(article.getId()),
+                            ArticleEventType.DELETED,
+                            Instant.now()
+                    ));
+                    return true;
+                })
+                .orElse(false);
     }
 }

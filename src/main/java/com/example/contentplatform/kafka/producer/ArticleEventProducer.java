@@ -18,7 +18,7 @@ public class ArticleEventProducer {
     public void publish(ArticleEvent event) {
         kafkaTemplate.send(
                 ARTICLE_TOPIC,
-                event.getArticleId(), // key
+                event.articleId(), // key
                 event
         );
     }

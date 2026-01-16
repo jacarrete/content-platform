@@ -1,6 +1,6 @@
 package com.example.contentplatform.kafka.consumer;
 
-import com.example.contentplatform.events.ArticleCreatedEvent;
+import com.example.contentplatform.events.ArticleEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,7 @@ public class ArticleEventConsumer {
             groupId = "content-platform",
             containerFactory = "kafkaListenerContainerFactory"
     )
-    public void consume(ArticleCreatedEvent event) {
+    public void consume(ArticleEvent event) {
         try {
             log.info("[Kafka Consumer] Received event: {}", event);
         } catch (Exception e) {
