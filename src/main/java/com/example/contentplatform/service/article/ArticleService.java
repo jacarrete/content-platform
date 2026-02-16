@@ -4,10 +4,13 @@ import com.example.contentplatform.api.article.ArticleRequest;
 import com.example.contentplatform.api.article.ArticleResponse;
 import com.example.contentplatform.events.ArticleEvent;
 import com.example.contentplatform.events.ArticleEventType;
-import com.example.contentplatform.kafka.producer.ArticleEventProducer;
+import com.example.contentplatform.outbox.OutboxEventEntity;
+import com.example.contentplatform.outbox.OutboxPayloadSerializer;
+import com.example.contentplatform.outbox.OutboxRepository;
 import com.example.contentplatform.repository.article.ArticleEntity;
 import com.example.contentplatform.repository.article.ArticleMapper;
 import com.example.contentplatform.repository.article.ArticleRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,20 +20,17 @@ import java.time.Instant;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ArticleService {
 
     private final ArticleRepository repository;
-    private final ArticleEventProducer articleEventProducer;
-
-    public ArticleService(ArticleRepository repository, ArticleEventProducer articleEventProducer) {
-        this.repository = repository;
-        this.articleEventProducer = articleEventProducer;
-    }
+    private final OutboxRepository outboxRepository;
+    private final OutboxPayloadSerializer serializer;
 
     @Transactional(readOnly = true)
     public Optional<ArticleResponse> getById(Long id) {
         return repository.findById(id)
-                .map(article -> new ArticleResponse(article.getId(), article.getTitle(), article.getContent()));
+                .map(ArticleMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -40,18 +40,10 @@ public class ArticleService {
     }
 
     @Transactional
-    public ArticleResponse create(ArticleRequest articleRequest) {
-        final var articleSaved = repository.save(
-                new ArticleEntity(articleRequest.title(), articleRequest.content())
-        );
-
-        articleEventProducer.publish(new ArticleEvent(
-                String.valueOf(articleSaved.getId()),
-                ArticleEventType.CREATED,
-                Instant.now()
-        ));
-
-        return ArticleMapper.toResponse(articleSaved);
+    public ArticleResponse create(ArticleRequest request) {
+        ArticleEntity saved = repository.save(new ArticleEntity(request.title(), request.content()));
+        createOutboxEvent(saved.getId().toString(), ArticleEventType.CREATED);
+        return ArticleMapper.toResponse(saved);
     }
 
     @Transactional
@@ -59,13 +51,8 @@ public class ArticleService {
         return repository.findById(id)
                 .map(article -> {
                     article.update(request.title(), request.content());
-                    final var articleUpdated = repository.save(article);
-                    articleEventProducer.publish(new ArticleEvent(
-                            String.valueOf(articleUpdated.getId()),
-                            ArticleEventType.UPDATED,
-                            Instant.now()
-                    ));
-                    return ArticleMapper.toResponse(articleUpdated);
+                    createOutboxEvent(article.getId().toString(), ArticleEventType.UPDATED);
+                    return ArticleMapper.toResponse(article);
                 });
     }
 
@@ -73,14 +60,27 @@ public class ArticleService {
     public boolean delete(Long id) {
         return repository.findById(id)
                 .map(article -> {
+                    createOutboxEvent(article.getId().toString(), ArticleEventType.DELETED);
                     repository.delete(article);
-                    articleEventProducer.publish(new ArticleEvent(
-                            String.valueOf(article.getId()),
-                            ArticleEventType.DELETED,
-                            Instant.now()
-                    ));
                     return true;
                 })
                 .orElse(false);
+    }
+
+    private void createOutboxEvent(String aggregateId, ArticleEventType type) {
+        ArticleEvent event = new ArticleEvent(
+                aggregateId,
+                type,
+                Instant.now()
+        );
+
+        outboxRepository.save(
+                OutboxEventEntity.pending(
+                        "ARTICLE",
+                        aggregateId,
+                        type.name(),
+                        serializer.serialize(event)
+                )
+        );
     }
 }

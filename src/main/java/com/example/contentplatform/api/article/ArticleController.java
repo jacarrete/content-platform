@@ -47,13 +47,14 @@ public class ArticleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ArticleResponse> update(
+    public ResponseEntity<Void> update(
             @PathVariable Long id,
             @Valid @RequestBody ArticleRequest request
     ) {
-        return service.update(id, request)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        boolean updated = service.update(id, request).isPresent();
+        return updated
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")

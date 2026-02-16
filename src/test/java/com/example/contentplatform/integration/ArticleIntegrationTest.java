@@ -2,47 +2,22 @@ package com.example.contentplatform.integration;
 
 import com.example.contentplatform.api.article.ArticleRequest;
 import com.example.contentplatform.api.article.ArticleResponse;
-import com.example.contentplatform.kafka.config.FakeKafkaConfig;
 import com.example.contentplatform.repository.article.ArticleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "spring.kafka.listener.auto-startup=false"
 )
-@Testcontainers
-@Import(FakeKafkaConfig.class)
-class ArticleIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("content_platform")
-                    .withUsername("cp_user")
-                    .withPassword("cp_pass");
-
-    @DynamicPropertySource
-    static void datasourceProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
-    }
+class ArticleIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -65,12 +40,11 @@ class ArticleIntegrationTest {
                 restTemplate.postForEntity("/articles", request, ArticleResponse.class);
 
         // Then
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        ArticleResponse body = response.getBody();
-        assertNotNull(body);
-        assertEquals("Title", body.title());
-        assertEquals("Body", body.content());
-        assertEquals(1, repository.count());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().title()).isEqualTo("Title");
+        assertThat(response.getBody().content()).isEqualTo("Body");
+        assertThat(repository.count()).isEqualTo(1);
     }
 
     @Test
@@ -83,9 +57,10 @@ class ArticleIntegrationTest {
                 restTemplate.getForEntity("/articles/" + created.id(), ArticleResponse.class);
 
         // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Title", response.getBody().title());
-        assertEquals("Body", response.getBody().content());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().title()).isEqualTo("Title");
+        assertThat(response.getBody().content()).isEqualTo("Body");
     }
 
     @Test
@@ -95,14 +70,25 @@ class ArticleIntegrationTest {
         ArticleRequest updateRequest = new ArticleRequest("New Title", "New Body");
 
         // When
-        restTemplate.put("/articles/" + created.id(), updateRequest);
-        ResponseEntity<ArticleResponse> response =
+        ResponseEntity<Void> updateResponse =
+                restTemplate.exchange(
+                        "/articles/" + created.id(),
+                        org.springframework.http.HttpMethod.PUT,
+                        new org.springframework.http.HttpEntity<>(updateRequest),
+                        Void.class
+                );
+
+        // Then
+        assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // When
+        ResponseEntity<ArticleResponse> getResponse =
                 restTemplate.getForEntity("/articles/" + created.id(), ArticleResponse.class);
 
         // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("New Title", response.getBody().title());
-        assertEquals("New Body", response.getBody().content());
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody().title()).isEqualTo("New Title");
+        assertThat(getResponse.getBody().content()).isEqualTo("New Body");
     }
 
     @Test
@@ -111,21 +97,36 @@ class ArticleIntegrationTest {
         ArticleResponse created = createArticle("Title", "Body");
 
         // When
-        restTemplate.delete("/articles/" + created.id());
-        ResponseEntity<ArticleResponse> response =
+        ResponseEntity<Void> deleteResponse =
+                restTemplate.exchange(
+                        "/articles/" + created.id(),
+                        org.springframework.http.HttpMethod.DELETE,
+                        null,
+                        Void.class
+                );
+
+        // Then
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(repository.count()).isEqualTo(0);
+
+        // When
+        ResponseEntity<ArticleResponse> getResponse =
                 restTemplate.getForEntity("/articles/" + created.id(), ArticleResponse.class);
 
         // Then
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals(0, repository.count());
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     // Utility method
     private ArticleResponse createArticle(String title, String content) {
         ArticleRequest request = new ArticleRequest(title, content);
+
         ResponseEntity<ArticleResponse> response =
                 restTemplate.postForEntity("/articles", request, ArticleResponse.class);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+
         return response.getBody();
     }
 }

@@ -71,10 +71,7 @@ class ArticleControllerTest {
                                   "content": "Updated body"
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.title").value("Updated"))
-                .andExpect(jsonPath("$.content").value("Updated body"));
+                .andExpect(status().isNoContent());
     }
 
     @Test

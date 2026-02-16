@@ -13,6 +13,7 @@ This project demonstrates how to integrate AI capabilities safely into a traditi
 * AI-powered semantic search using Ollama.
 * Runtime feature flags to enable/disable AI without restarting.
 * Safe fallback to keyword-based search when AI is disabled or unavailable.
+* Event-driven architecture using a transactional outbox to reliably publish article events to Kafka.
 * PostgreSQL persistence.
 * Observability: metrics, tracing, and structured logging.
 * Docker Compose setup for local development.

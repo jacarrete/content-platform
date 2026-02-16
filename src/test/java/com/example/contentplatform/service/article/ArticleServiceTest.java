@@ -4,7 +4,9 @@ import com.example.contentplatform.api.article.ArticleRequest;
 import com.example.contentplatform.api.article.ArticleResponse;
 import com.example.contentplatform.events.ArticleEvent;
 import com.example.contentplatform.events.ArticleEventType;
-import com.example.contentplatform.kafka.producer.ArticleEventProducer;
+import com.example.contentplatform.outbox.OutboxEventEntity;
+import com.example.contentplatform.outbox.OutboxPayloadSerializer;
+import com.example.contentplatform.outbox.OutboxRepository;
 import com.example.contentplatform.repository.article.ArticleEntity;
 import com.example.contentplatform.repository.article.ArticleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,41 +26,46 @@ import static org.mockito.Mockito.*;
 class ArticleServiceTest {
 
     private ArticleRepository repository;
-    private ArticleEventProducer eventProducer;
+    private OutboxRepository outboxRepository;
+    private OutboxPayloadSerializer serializer;
     private ArticleService service;
 
     @BeforeEach
     void setup() {
         repository = mock(ArticleRepository.class);
-        eventProducer = mock(ArticleEventProducer.class);
-        service = new ArticleService(repository, eventProducer);
+        outboxRepository = mock(OutboxRepository.class);
+        serializer = mock(OutboxPayloadSerializer.class);
+        service = new ArticleService(repository, outboxRepository, serializer);
     }
 
     @Test
-    void shouldCreateArticleAndPublishEvent() {
+    void shouldCreateArticleAndWriteOutboxEvent() {
         // Given
         ArticleRequest request = new ArticleRequest("Title", "Body");
 
-        ArticleEntity returnedEntity = new ArticleEntity("Title", "Body");
-        setId(returnedEntity, 1L);
+        ArticleEntity saved = new ArticleEntity("Title", "Body");
+        setId(saved, 1L);
 
-        when(repository.save(any(ArticleEntity.class))).thenReturn(returnedEntity);
+        when(repository.save(any(ArticleEntity.class))).thenReturn(saved);
+        when(serializer.serialize(any(ArticleEvent.class))).thenReturn("{json}");
 
         // When
         ArticleResponse response = service.create(request);
 
         // Then
-        ArgumentCaptor<ArticleEntity> entityCaptor = ArgumentCaptor.forClass(ArticleEntity.class);
-        verify(repository).save(entityCaptor.capture());
-        ArticleEntity capturedEntity = entityCaptor.getValue();
-        assertThat(capturedEntity.getTitle()).isEqualTo("Title");
-        assertThat(capturedEntity.getContent()).isEqualTo("Body");
+        verify(repository).save(any(ArticleEntity.class));
+        verify(serializer).serialize(any(ArticleEvent.class));
 
-        ArgumentCaptor<ArticleEvent> eventCaptor = ArgumentCaptor.forClass(ArticleEvent.class);
-        verify(eventProducer).publish(eventCaptor.capture());
-        ArticleEvent event = eventCaptor.getValue();
-        assertThat(event.type()).isEqualTo(ArticleEventType.CREATED);
-        assertThat(event.articleId()).isEqualTo("1");
+        ArgumentCaptor<OutboxEventEntity> outboxCaptor =
+                ArgumentCaptor.forClass(OutboxEventEntity.class);
+
+        verify(outboxRepository).save(outboxCaptor.capture());
+
+        OutboxEventEntity outbox = outboxCaptor.getValue();
+        assertThat(outbox.getAggregateType()).isEqualTo("ARTICLE");
+        assertThat(outbox.getAggregateId()).isEqualTo("1");
+        assertThat(outbox.getEventType()).isEqualTo(ArticleEventType.CREATED.name());
+        assertThat(outbox.getPayload()).isEqualTo("{json}");
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.title()).isEqualTo("Title");
@@ -66,25 +73,24 @@ class ArticleServiceTest {
     }
 
     @Test
-    void shouldUpdateArticleWhenExists() {
+    void shouldUpdateArticleWhenExistsAndWriteOutboxEvent() {
         // Given
-        ArticleRequest request = new ArticleRequest("New Title", "New Body");
-        ArticleEntity existing = new ArticleEntity("Old Title", "Old Body");
+        ArticleEntity existing = new ArticleEntity("Old", "Old");
         setId(existing, 2L);
 
         when(repository.findById(2L)).thenReturn(Optional.of(existing));
-        when(repository.save(any(ArticleEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(serializer.serialize(any(ArticleEvent.class))).thenReturn("{json}");
 
         // When
-        Optional<ArticleResponse> updated = service.update(2L, request);
+        Optional<ArticleResponse> updated =
+                service.update(2L, new ArticleRequest("New", "New"));
 
         // Then
         assertThat(updated).isPresent();
-        assertThat(updated.get().title()).isEqualTo("New Title");
-        assertThat(updated.get().content()).isEqualTo("New Body");
+        assertThat(updated.get().title()).isEqualTo("New");
+        assertThat(updated.get().content()).isEqualTo("New");
 
-        verify(repository).save(existing);
-        verify(eventProducer).publish(any(ArticleEvent.class));
+        verify(outboxRepository).save(any(OutboxEventEntity.class));
     }
 
     @Test
@@ -93,20 +99,22 @@ class ArticleServiceTest {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         // When
-        Optional<ArticleResponse> updated = service.update(99L, new ArticleRequest("T", "C"));
+        Optional<ArticleResponse> result =
+                service.update(99L, new ArticleRequest("T", "C"));
 
         // Then
-        assertThat(updated).isEmpty();
-        verify(repository, never()).save(any());
-        verify(eventProducer, never()).publish(any());
+        assertThat(result).isEmpty();
+        verify(outboxRepository, never()).save(any());
     }
 
     @Test
-    void shouldDeleteArticleWhenExists() {
+    void shouldDeleteArticleWhenExistsAndWriteOutboxEvent() {
         // Given
         ArticleEntity existing = new ArticleEntity("Title", "Body");
         setId(existing, 3L);
+
         when(repository.findById(3L)).thenReturn(Optional.of(existing));
+        when(serializer.serialize(any(ArticleEvent.class))).thenReturn("{json}");
 
         // When
         boolean deleted = service.delete(3L);
@@ -114,7 +122,7 @@ class ArticleServiceTest {
         // Then
         assertThat(deleted).isTrue();
         verify(repository).delete(existing);
-        verify(eventProducer).publish(any(ArticleEvent.class));
+        verify(outboxRepository).save(any(OutboxEventEntity.class));
     }
 
     @Test
@@ -127,8 +135,7 @@ class ArticleServiceTest {
 
         // Then
         assertThat(deleted).isFalse();
-        verify(repository, never()).delete(any());
-        verify(eventProducer, never()).publish(any());
+        verify(outboxRepository, never()).save(any());
     }
 
     @Test
@@ -136,6 +143,7 @@ class ArticleServiceTest {
         // Given
         ArticleEntity entity = new ArticleEntity("Title", "Body");
         setId(entity, 4L);
+
         when(repository.findById(4L)).thenReturn(Optional.of(entity));
 
         // When
@@ -166,7 +174,7 @@ class ArticleServiceTest {
         assertThat(result.getContent().get(1).id()).isEqualTo(6L);
     }
 
-    // Utility method to set ID via reflection
+    // Utility method for tests only
     private void setId(ArticleEntity entity, Long id) {
         try {
             var field = ArticleEntity.class.getDeclaredField("id");

@@ -5,7 +5,7 @@ import com.example.contentplatform.api.article.ArticleResponseList;
 import com.example.contentplatform.config.RuntimeFeatureFlags;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -16,7 +16,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AiContentRouter {
 
     private final OllamaContentService ollamaService;
